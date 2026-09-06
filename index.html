@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>下北沢 新店レーダー</title>
+<meta name="description" content="世田谷区の営業許可オープンデータから起こした、下北沢エリア（北沢・代沢・代田・大原・羽根木）の新店の候補地図。　令和8年5月〜令和8年7月／21軒">
+<meta property="og:type" content="website">
+<meta property="og:title" content="下北沢 新店レーダー">
+<meta property="og:description" content="世田谷区の営業許可オープンデータから起こした、下北沢エリア（北沢・代沢・代田・大原・羽根木）の新店の候補地図。　令和8年5月〜令和8年7月／21軒">
+<meta property="og:site_name" content="下北沢 新店レーダー">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:url" content="https://takemoto20200706-web.github.io/shinten-radar/">
+<meta property="og:image" content="https://takemoto20200706-web.github.io/shinten-radar/ogp.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+/* ---- 黄と黒 ---------------------------------------------------------
+   下北沢の小劇場の立て看板やライブハウスのフライヤーの配色。
+   黒地に黄はコントラスト比13:1で、屋外の明るい場所でも文字が飛ばない。
+   地図の下地だけは紙色のまま残す。街路名が読めなくなると用をなさないため。 */
+:root{
+  color-scheme: light;
+  --ink:      #141311;
+  --hi:       #FFD400;
+  --paper:    #F4F1E6;
+  --paper-hi: #FBF9F2;
+  --dim:      #E4E0D2;
+  --sub:      #4A463E;
+  --sans: "Zen Kaku Gothic New", -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+  /* 見出しは本文と同じ family の最重量。字の中の空きが広く、小さい画面でも潰れない。
+     もっと癖を出したいときは、上の <link> に family を足したうえで
+     "Zen Maru Gothic"（丸ゴシック）や "RocknRoll One" に差し替える。 */
+  --disp: var(--sans);
+  --dot:  "DotGothic16", ui-monospace, monospace;
+  --head-h: 150px;   /* 読み込み後にJSで実測値へ差し替える */
+  --bar-h: 58px;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; height:100%; overflow:hidden;
+  background:var(--paper); color:var(--ink); font-family:var(--sans);
+  -webkit-text-size-adjust:100%; }
+button{ font:inherit; color:inherit; }
+:focus-visible{ outline:3px solid var(--ink); outline-offset:2px; }
+.head :focus-visible{ outline-color:var(--hi); }
+
+/* ---- 地図 ---- */
+#map{ position:absolute; left:0; right:0; top:var(--head-h); bottom:var(--bar-h);
+  background:var(--paper); }
+/* 下地を脱色して紙色に寄せる。黄と黒のピンだけが立つようにするため */
+.leaflet-tile{ filter:grayscale(1) contrast(.72) brightness(1.14) sepia(.3); }
+.leaflet-container{ background:var(--paper); font-family:var(--sans); }
+
+/* ---- マストヘッド：黒の帯 ---- */
+.head{ position:absolute; z-index:1000; top:0; left:0; right:0;
+  background:var(--ink); border-bottom:3px solid var(--hi);
+  padding:11px 14px 10px; }
+.title{ font-family:var(--disp); font-weight:900; font-size:28px; line-height:1.15;
+  margin:0; color:var(--hi); letter-spacing:.03em; }
+.period{ font-size:13px; font-weight:500; margin:8px 0 0;
+  color:var(--hi); letter-spacing:.02em; }
+.caveat{ font-size:12px; font-weight:500; line-height:1.6; margin:6px 0 10px;
+  color:var(--dim); }
+.filters{ display:flex; gap:7px; flex-wrap:wrap; }
+.chip{ display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+  background:transparent; color:var(--hi); border:2px solid var(--hi);
+  border-radius:999px; padding:7px 13px; font-size:13.5px; font-weight:700;
+  line-height:1; }
+.chip[aria-pressed="true"]{ background:var(--hi); color:var(--ink); }
+.chip[aria-pressed="false"]{ opacity:.55; }
+.chip .sw{ width:12px; height:12px; border-radius:50%; flex:none;
+  border:2px solid; box-shadow:0 0 0 2px var(--paper-hi); }
+.chip .n{ font-size:13.5px; font-weight:900; }
+
+/* ---- ピン：塗り＝営業中、中空＝台帳から消えた店 ---- */
+.pin{ width:40px; height:40px; }
+.pin i{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:19px; height:19px; border-radius:50%; display:block; border:3px solid; }
+.pin i.gone, .row-sw.gone, .chip .sw.gone{ border-style:dashed; }
+
+/* ---- ふきだし ---- */
+.leaflet-popup-content-wrapper{ background:var(--ink); color:var(--paper-hi);
+  border:3px solid var(--hi); border-radius:3px;
+  box-shadow:5px 5px 0 rgba(20,19,17,.3); }
+.leaflet-popup-content{ margin:13px 15px; font-size:13px; line-height:1.6; }
+.leaflet-popup-tip{ background:var(--hi); border:0; box-shadow:none; }
+.leaflet-popup-close-button{ color:var(--hi) !important; font-size:21px !important;
+  padding:7px 9px 0 0 !important; }
+.pop-kind{ display:inline-block; font-size:11px; font-weight:700; line-height:1;
+  padding:5px 8px; border:2px solid; border-radius:999px; margin-bottom:8px; }
+.pop-name{ font-family:var(--disp); font-weight:900; font-size:18.5px;
+  line-height:1.35; margin:0 0 7px; color:var(--hi); }
+.pop-dl{ margin:0 0 11px; font-size:13px; line-height:1.5;
+  display:grid; grid-template-columns:auto 1fr; gap:3px 10px; }
+.pop-dl dt{ color:var(--dim); font-size:11.5px; font-weight:700; padding-top:1px; }
+.pop-dl dd{ margin:0; color:var(--paper-hi); font-weight:500; }
+.pop-dl b{ font-family:var(--dot); font-weight:400; letter-spacing:.05em; }
+.pop-addr{ font-size:12.5px; color:var(--dim); margin:0 0 11px; line-height:1.55; }
+.leaflet-popup-content a.pop-go{ display:inline-block; background:var(--hi);
+  color:var(--ink); text-decoration:none; font-size:13px; font-weight:900;
+  padding:10px 15px; border-radius:2px; }
+.leaflet-popup-content a.pop-go:hover{ background:var(--paper-hi); }
+
+/* ---- 下からせり上がるリスト ---- */
+.drawer{ position:absolute; z-index:1001; left:0; right:0; bottom:0;
+  background:var(--paper-hi); border-top:3px solid var(--ink);
+  display:flex; flex-direction:column;
+  height:var(--bar-h); max-height:78%;
+  transition:height .28s cubic-bezier(.22,.61,.36,1);
+  padding-bottom:env(safe-area-inset-bottom); }
+.drawer[data-open="true"]{ height:min(64%, 470px); }
+.handle{ flex:none; height:var(--bar-h); width:100%; cursor:pointer;
+  background:var(--hi); color:var(--ink); border:0;
+  border-bottom:3px solid var(--ink);
+  display:flex; align-items:center; gap:10px; padding:0 14px; text-align:left; }
+.handle-arrow{ font-size:11px; line-height:1; transition:transform .28s; }
+.drawer[data-open="true"] .handle-arrow{ transform:rotate(180deg); }
+.handle-l{ font-weight:900; font-size:15px; }
+.handle-n{ font-size:14px; font-weight:700; margin-left:auto; }
+.list{ overflow-y:auto; -webkit-overflow-scrolling:touch; flex:1; }
+.row{ display:flex; align-items:flex-start; gap:11px; width:100%;
+  padding:12px 14px; background:none; border:0; cursor:pointer; text-align:left;
+  border-bottom:1px solid rgba(20,19,17,.15); }
+.row:hover{ background:rgba(20,19,17,.05); }
+.row-sw{ width:14px; height:14px; border-radius:50%; flex:none; margin-top:4px;
+  border:2.5px solid; }
+.row-main{ flex:1; min-width:0; }
+.row-name{ display:block; font-weight:700; font-size:15.5px; line-height:1.4;
+  overflow-wrap:anywhere; }
+.row-addr{ display:block; font-size:12.5px; color:var(--sub); margin-top:4px;
+  line-height:1.5; overflow-wrap:anywhere; }
+.row-dates{ display:block; font-size:12px; color:var(--sub); margin-top:4px;
+  line-height:1.6; }
+.row-dates b{ font-family:var(--dot); font-weight:400; letter-spacing:.04em;
+  color:var(--ink); }
+.empty{ padding:26px 16px; font-size:13px; color:var(--sub); }
+.src{ flex:none; margin:0; padding:11px 14px 13px; font-size:11px;
+  line-height:1.6; color:var(--sub); border-top:1px solid rgba(20,19,17,.15); }
+
+.leaflet-control-attribution{ font-size:9.5px !important;
+  background:rgba(251,249,242,.9) !important; }
+
+@media (min-width:760px){
+  .title{ font-size:32px; }
+  .drawer{ left:auto; right:0; top:0; bottom:0; width:352px;
+    height:auto !important; max-height:none;
+    border-top:0; border-left:3px solid var(--ink); }
+  .handle{ display:none; }
+  .head{ right:352px; }
+  #map{ right:352px; bottom:0; }
+}
+@media (max-height:560px){
+  .leaflet-control-zoom{ display:none; }
+}
+@media (prefers-reduced-motion:reduce){
+  .drawer,.handle-arrow{ transition:none; }
+}
+</style>
+</head>
+<body>
+
+<header class="head">
+  <h1 class="title">下北沢 新店レーダー</h1>
+  <p class="period">令和8年5月〜令和8年7月　/　21軒</p>
+  <p class="caveat">許可データから起こした候補リストです。業態は含まれません。廃業は反映されません。</p>
+  <div class="filters" id="filters"></div>
+</header>
+
+<div id="map"></div>
+
+<div class="drawer" id="drawer" data-open="false">
+  <button class="handle" id="handle" aria-expanded="false" aria-controls="list">
+    <span class="handle-arrow" aria-hidden="true">▲</span>
+    <span class="handle-l" id="handleL">リストで見る</span>
+    <span class="handle-n" id="handleN"></span>
+  </button>
+  <div class="list" id="list"></div>
+  <p class="src">
+    出典：「新規許可施設一覧」「全許可施設一覧」（世田谷区）／地図 &copy; OpenStreetMap contributors<br>
+    「閉店の可能性」は許可台帳から消えた施設です。更新手続き中のこともあるので現地で確認してください。
+  </p>
+</div>
+
+<script>
+const KINDS = {"新店": {"fill": "#FFD400", "line": "#141311", "text": "#141311", "gone": false}, "チェーン": {"fill": "#141311", "line": "#FFD400", "text": "#FFD400", "gone": false}, "閉店の可能性": {"fill": "#F4F1E6", "line": "#141311", "text": "#141311", "gone": true}};
+const DATA = [{"kind": "チェーン", "name": "夢吟坊 下北沢店", "address": "東京都世田谷区北沢二丁目33番7号", "sub": "芳澤ビル1F", "category": "飲食店営業", "date": "2026-07-31", "since": "2026-07-31", "lat": 35.663261, "lon": 139.668655}, {"kind": "新店", "name": "OCHER", "address": "東京都世田谷区北沢二丁目23番2号", "sub": "ポルテ下北沢2F", "category": "飲食店営業", "date": "2026-07-17", "since": "2026-07-17", "lat": 35.661167, "lon": 139.666321}, {"kind": "新店", "name": "canpy", "address": "東京都世田谷区北沢二丁目23番12号", "sub": "Mビル1F", "category": "飲食店営業", "date": "2026-07-10", "since": "2026-07-10", "lat": 35.661594, "lon": 139.666489}, {"kind": "チェーン", "name": "魚えもん下北沢店", "address": "東京都世田谷区北沢二丁目14番8号", "sub": "ミナミビルB1F", "category": "飲食店営業", "date": "2026-07-10", "since": "2026-07-10", "lat": 35.660282, "lon": 139.667389}, {"kind": "新店", "name": "sansato", "address": "東京都世田谷区代沢五丁目36番14号", "sub": "sansato1F", "category": "飲食店営業", "date": "2026-06-30", "since": "2026-06-30", "lat": 35.659286, "lon": 139.667358}, {"kind": "新店", "name": "YATE", "address": "東京都世田谷区北沢二丁目12番3号", "sub": "石川ビル301", "category": "飲食店営業", "date": "2026-06-25", "since": "2026-06-25", "lat": 35.660717, "lon": 139.667984}, {"kind": "新店", "name": "FENDER CAFE SHIMOKITAZAWA", "address": "東京都世田谷区北沢一丁目40番11号", "sub": "サニーハイマート下北沢103号", "category": "飲食店営業", "date": "2026-06-23", "since": "2026-06-23", "lat": 35.662346, "lon": 139.670258}, {"kind": "新店", "name": "多田バー", "address": "東京都世田谷区北沢二丁目12番3号", "sub": "石川ビル302", "category": "飲食店営業", "date": "2026-06-23", "since": "2026-06-23", "lat": 35.660717, "lon": 139.667984}, {"kind": "新店", "name": "麺 かすみ", "address": "東京都世田谷区北沢二丁目10番20号", "sub": "ミカン下北D202", "category": "飲食店営業", "date": "2026-06-08", "since": "2026-06-08", "lat": 35.661556, "lon": 139.66835}, {"kind": "新店", "name": "iSDG麻辣燙 中華房 下北沢店", "address": "東京都世田谷区北沢二丁目34番3号", "sub": "ミドキタ1B", "category": "飲食店営業", "date": "2026-06-05", "since": "2026-06-05", "lat": 35.663116, "lon": 139.668137}, {"kind": "新店", "name": "O", "address": "東京都世田谷区代沢二丁目36番24号", "sub": "みのりテラス1F店舗部分", "category": "飲食店営業", "date": "2026-06-05", "since": "2026-06-05", "lat": 35.659561, "lon": 139.672806}, {"kind": "新店", "name": "金威となり", "address": "東京都世田谷区代沢三丁目14番3号", "sub": "", "category": "飲食店営業", "date": "2026-06-05", "since": "2026-06-05", "lat": 35.654995, "lon": 139.673767}, {"kind": "新店", "name": "reload POPUP SPACE 1-7", "address": "東京都世田谷区北沢三丁目19番20号", "sub": "reload1-7区画", "category": "漬物製造業", "date": "2026-06-03", "since": "2026-06-03", "lat": 35.663227, "lon": 139.669739}, {"kind": "新店", "name": "てっちょこ", "address": "東京都世田谷区北沢三丁目2番10号", "sub": "B1", "category": "そうざい製造業", "date": "2026-05-27", "since": "2026-05-27", "lat": 35.667088, "lon": 139.672729}, {"kind": "新店", "name": "reload POPUP SPACE 2-3", "address": "東京都世田谷区北沢三丁目19番20号", "sub": "reload2-3区画", "category": "飲食店営業", "date": "2026-05-26", "since": "2026-05-26", "lat": 35.663227, "lon": 139.669739}, {"kind": "新店", "name": "TeNMi", "address": "東京都世田谷区代沢五丁目32番7号", "sub": "小林ビル2階", "category": "飲食店営業", "date": "2026-05-25", "since": "2026-05-25", "lat": 35.658882, "lon": 139.667419}, {"kind": "新店", "name": "元祖肉油堂 UMAMI", "address": "東京都世田谷区北沢二丁目29番16号", "sub": "マガザン下北沢B1", "category": "飲食店営業", "date": "2026-05-25", "since": "2026-05-25", "lat": 35.662964, "lon": 139.667053}, {"kind": "新店", "name": "ADDA", "address": "東京都世田谷区代田二丁目36番14号", "sub": "ボーナストラックsoho4", "category": "飲食店営業", "date": "2026-05-21", "since": "2026-05-21", "lat": 35.65913, "lon": 139.66391}, {"kind": "新店", "name": "ストーリーのある本屋", "address": "東京都世田谷区代田五丁目10番11号", "sub": "", "category": "飲食店営業", "date": "2026-05-13", "since": "2026-05-13", "lat": 35.659737, "lon": 139.6604}, {"kind": "新店", "name": "snack Umi", "address": "東京都世田谷区北沢三丁目25番1号", "sub": "MTビル4F", "category": "飲食店営業", "date": "2026-05-11", "since": "2026-05-11", "lat": 35.663475, "lon": 139.668671}, {"kind": "新店", "name": "coen cafe月日/coen barえん川", "address": "東京都世田谷区代田六丁目6番1号", "sub": "TOKYUREIT下北沢スクエア4階", "category": "飲食店営業", "date": "2026-05-08", "since": "2026-05-08", "lat": 35.663342, "lon": 139.665405}];
+const CENTER = [35.66141285714286, 139.66812204761905];
+
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s => (s || '').replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shortAddr = s => (s || '').replace(/^東京都世田谷区/, '');
+const swatch = k => 'background:' + KINDS[k].fill + ';border-color:' + KINDS[k].line;
+const goneCls = k => KINDS[k].gone ? ' gone' : '';
+
+const map = L.map('map', { zoomControl: false, attributionControl: true,
+  fadeAnimation: false })
+  .setView(CENTER, 16);
+L.control.zoom({ position: 'bottomleft' }).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, attribution: '&copy; OpenStreetMap'
+}).addTo(map);
+
+const shown = new Set(Object.keys(KINDS));
+const markers = DATA.map((d, i) => {
+  const icon = L.divIcon({
+    className: '',
+    html: '<div class="pin"><i class="' + (KINDS[d.kind].gone ? 'gone' : '') +
+          '" style="' + swatch(d.kind) + '"></i></div>',
+    iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -16]
+  });
+  const m = L.marker([d.lat, d.lon], { icon, title: d.name, riseOnHover: true });
+  m.bindPopup(
+    '<span class="pop-kind" style="' + swatch(d.kind) + ';color:' +
+      KINDS[d.kind].text + '">' + esc(d.kind) + '</span>' +
+    '<h2 class="pop-name">' + esc(d.name) + '</h2>' +
+    '<dl class="pop-dl">' +
+      '<dt>オープン</dt><dd>' + (d.since
+        ? '<b>' + esc(d.since) + '</b> 以降' : '不明') + '</dd>' +
+      (KINDS[d.kind].gone
+        ? '<dt>閉店</dt><dd><b>' + esc(d.date || '----') + '</b> までに</dd>' : '') +
+      '<dt>業種</dt><dd>' + esc(d.category || '不明') + '</dd>' +
+    '</dl>' +
+    '<p class="pop-addr">' + esc(shortAddr(d.address)) +
+      (d.sub ? '<br>' + esc(d.sub) : '') + '</p>' +
+    '<a class="pop-go" target="_blank" rel="noopener" href="' +
+      'https://www.google.com/maps/search/?api=1&query=' +
+      encodeURIComponent(d.name + ' ' + d.address) + '">Googleマップで開く</a>',
+    { maxWidth: 262 }
+  );
+  m._i = i;
+  return m;
+});
+
+const layer = L.layerGroup(markers).addTo(map);
+
+/* ---- 絞り込み ---- */
+const filters = document.getElementById('filters');
+for (const kind of Object.keys(KINDS)) {
+  const n = DATA.filter(d => d.kind === kind).length;
+  if (!n) continue;
+  const b = document.createElement('button');
+  b.className = 'chip';
+  b.type = 'button';
+  b.setAttribute('aria-pressed', 'true');
+  b.innerHTML = '<span class="sw' + goneCls(kind) + '" style="' + swatch(kind) +
+                '"></span>' +
+                esc(kind) + ' <span class="n">' + n + '</span>';
+  b.onclick = () => {
+    const on = b.getAttribute('aria-pressed') === 'true';
+    b.setAttribute('aria-pressed', on ? 'false' : 'true');
+    if (on) shown.delete(kind); else shown.add(kind);
+    render();
+  };
+  filters.appendChild(b);
+}
+
+/* ---- リスト ---- */
+const list = document.getElementById('list');
+const handleN = document.getElementById('handleN');
+const drawer = document.getElementById('drawer');
+const handle = document.getElementById('handle');
+const handleL = document.getElementById('handleL');
+
+handle.onclick = () => {
+  const open = drawer.dataset.open === 'true';
+  drawer.dataset.open = open ? 'false' : 'true';
+  handle.setAttribute('aria-expanded', open ? 'false' : 'true');
+  handleL.textContent = open ? 'リストで見る' : '地図にもどる';
+};
+
+function focusOn(i) {
+  const to = [DATA[i].lat, DATA[i].lon];
+  if (REDUCED) map.setView(to, 18); else map.flyTo(to, 18, { duration: .6 });
+  markers[i].openPopup();
+  if (window.innerWidth < 760) {
+    drawer.dataset.open = 'false';
+    handle.setAttribute('aria-expanded', 'false');
+    handleL.textContent = 'リストで見る';
+  }
+}
+
+function render() {
+  const visible = DATA.map((d, i) => [d, i]).filter(([d]) => shown.has(d.kind));
+  layer.clearLayers();
+  visible.forEach(([, i]) => layer.addLayer(markers[i]));
+
+  handleN.textContent = visible.length + '軒';
+  list.innerHTML = '';
+  if (!visible.length) {
+    list.innerHTML = '<p class="empty">表示する店がありません。上のボタンで種類を選び直してください。</p>';
+    return;
+  }
+  for (const [d, i] of visible) {
+    const b = document.createElement('button');
+    b.className = 'row';
+    b.type = 'button';
+    b.innerHTML =
+      '<span class="row-sw' + goneCls(d.kind) + '" style="' + swatch(d.kind) + '"></span>' +
+      '<span class="row-main">' +
+        '<span class="row-name">' + esc(d.name) + '</span>' +
+        '<span class="row-addr">' + esc(shortAddr(d.address)) +
+          (d.sub ? ' ' + esc(d.sub) : '') + '</span>' +
+        '<span class="row-dates">オープン ' +
+          (d.since ? '<b>' + esc(d.since) + '</b> 以降' : '不明') +
+          (KINDS[d.kind].gone
+            ? '<br>閉店　　<b>' + esc(d.date || '----') + '</b> までに' : '') +
+        '</span>' +
+      '</span>';
+    b.onclick = () => focusOn(i);
+    list.appendChild(b);
+  }
+}
+
+render();
+
+// 見出しは文字の折り返しで高さが変わる。実測して地図の上端に反映する
+function layout() {
+  const h = document.querySelector('.head').offsetHeight;
+  document.documentElement.style.setProperty('--head-h', h + 'px');
+  map.invalidateSize({ animate: false });
+}
+layout();
+window.addEventListener('resize', layout);
+
+if (DATA.length) {
+  map.fitBounds(DATA.map(d => [d.lat, d.lon]), { padding: [28, 28], maxZoom: 17 });
+}
+</script>
+</body>
+</html>
