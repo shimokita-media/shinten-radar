@@ -26,10 +26,8 @@
 
 ## 1. 公開版をビルドする
 
-`USER` は自分のGitHubユーザー名、`shinten-radar` はリポジトリ名に置き換える。
-
 ```bash
-cd C:\Users\take0\shinten-radar && python build_map.py --public --base-url "https://USER.github.io/shinten-radar"
+cd C:\Users\take0\shinten-radar && python build_map.py --public --base-url "https://takemoto20200706-web.github.io/shinten-radar"
 ```
 
 `docs/index.html`（地図）と `docs/ogp.png`（SNSのサムネイル）が出る。
@@ -48,7 +46,7 @@ cd C:\Users\take0\shinten-radar && python build_map.py --public --base-url "http
 ## 3. push する
 
 ```bash
-cd C:\Users\take0\shinten-radar && git remote add origin https://github.com/USER/shinten-radar.git && git push -u origin main
+cd C:\Users\take0\shinten-radar && git remote add origin https://github.com/takemoto20200706-web/shinten-radar.git && git push -u origin main
 ```
 
 ## 4. Pages を有効にする
@@ -56,12 +54,12 @@ cd C:\Users\take0\shinten-radar && git remote add origin https://github.com/USER
 1. リポジトリの **Settings** → 左メニューの **Pages**
 2. Source: **Deploy from a branch**
 3. Branch: **main** / フォルダ: **/docs** → Save
-4. 1〜2分待つと `https://USER.github.io/shinten-radar/` で公開される
+4. 1〜2分待つと `https://takemoto20200706-web.github.io/shinten-radar/` で公開される
 
 ## 5. 毎月の更新
 
 ```bash
-cd C:\Users\take0\shinten-radar && python build_map.py --public --base-url "https://USER.github.io/shinten-radar" && git add docs && git commit -m "$(date +%Y-%m)月分を更新" && git push
+cd C:\Users\take0\shinten-radar && python build_map.py --public --base-url "https://takemoto20200706-web.github.io/shinten-radar" && git add docs && git commit -m "$(date +%Y-%m)月分を更新" && git push
 ```
 
 `run_monthly.bat` に足しておけば、毎月16日の自動実行のあとに手でpushするだけになる。
