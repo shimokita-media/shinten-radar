@@ -1,0 +1,17 @@
+# 秘密
+.env
+
+# キャッシュ。区のサイトは過去ぶんを消すので手で削除しないこと（gitには載せない）
+data/
+masters/
+state/
+
+# 手元の作業用出力。公開するのは docs/ だけ
+out/
+
+# 旧システムの巨大CSV
+archive/ifas_data/
+
+__pycache__/
+*.pyc
+.claude/
