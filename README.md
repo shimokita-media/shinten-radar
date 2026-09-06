@@ -170,6 +170,20 @@ python timeline.py
 屋号にそのキーワードが含まれたら「チェーン」に分類される（**除外ではなく別枠に分ける**）。
 全角/半角の揺れは自動で吸収するので、見たままを書けばよい。
 
+### 公開する
+
+```bash
+python build_map.py --public --base-url "https://USER.github.io/shinten-radar"
+```
+
+`docs/index.html` と `docs/ogp.png`（SNSサムネイル）を書き出す。GitHub Pages で配信する。
+手順は `PUBLISH.md`。
+
+**公開版には「閉店の可能性」を含めない**（`--public` が自動で除外する）。
+台帳の動きからの推測なので、営業中の店を閉店扱いすると実害が出る。裏が取れた店だけ記事にする。
+
+データは世田谷区の **CC BY 4.0**。地図フッターの出典表示を消さないこと。
+
 ### 月次の自動実行
 
 `SETUP_SCHEDULER.md` を参照。Windows タスクスケジューラで毎月16日に `run_monthly.bat` を回す。
@@ -217,7 +231,9 @@ shinten_radar.py        新店抽出（メイン）
 heiten_radar.py         閉店の抽出（--expired が主）
 timeline.py             開店・閉店の年表
 build_map.py            地図HTML生成
+make_ogp.py             SNS用サムネイル画像
 chains.txt              チェーン店キーワード
+docs/                   公開版（GitHub Pages で配信する。gitに載る唯一の出力）
 run_monthly.bat         月次実行バッチ
 .env                    LINEのトークン（gitignore済み。.env.example をコピーして作る）
 data/shinki/            新規許可一覧のキャッシュ
