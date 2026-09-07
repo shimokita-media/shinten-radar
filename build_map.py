@@ -570,7 +570,7 @@ def make_ogp(period, count):
         print("[注意] Pillow が無いのでOGP画像は作りません（pip install pillow）",
               file=sys.stderr)
         return
-    path = build(count, period, os.path.join(HERE, "docs", "ogp.png"))
+    path = build(count, period, os.path.join(HERE, "ogp.png"))
     if path:
         print("出力: %s" % path)
 
@@ -660,7 +660,7 @@ def main():
             .replace("__PERIOD__", label))
     out_path = args.out
     if args.public and out_path == os.path.join(OUT_DIR, "map.html"):
-        out_path = os.path.join(HERE, "docs", "index.html")
+        out_path = os.path.join(HERE, "index.html")
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)

@@ -176,7 +176,7 @@ python timeline.py
 python build_map.py --public --base-url "https://USER.github.io/shinten-radar"
 ```
 
-`docs/index.html` と `docs/ogp.png`（SNSサムネイル）を書き出す。GitHub Pages で配信する。
+リポジトリ直下に `index.html` と `ogp.png`（SNSサムネイル）を書き出す。GitHub Pages で配信する。
 手順は `PUBLISH.md`。
 
 **公開版には「閉店の可能性」を含めない**（`--public` が自動で除外する）。
@@ -233,7 +233,9 @@ timeline.py             開店・閉店の年表
 build_map.py            地図HTML生成
 make_ogp.py             SNS用サムネイル画像
 chains.txt              チェーン店キーワード
-docs/                   公開版（GitHub Pages で配信する。gitに載る唯一の出力）
+index.html / ogp.png    公開版（GitHub Pages が直下から配信する）
+verify_public.py        公開前の検査。おかしな地図を止める門番
+.github/workflows/      毎月16日の自動更新
 run_monthly.bat         月次実行バッチ
 .env                    LINEのトークン（gitignore済み。.env.example をコピーして作る）
 data/shinki/            新規許可一覧のキャッシュ

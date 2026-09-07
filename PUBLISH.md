@@ -1,6 +1,6 @@
 # 公開手順（GitHub Pages）
 
-公開するのは `docs/index.html` の1ファイルだけ。地図はこれ単体で動く。
+公開するのは リポジトリ直下の `index.html` 1ファイルだけ。地図はこれ単体で動く。
 
 ## 公開に関する前提
 
@@ -30,7 +30,7 @@
 cd C:\Users\take0\shinten-radar && python build_map.py --public --base-url "https://shimokita-media.github.io/shinten-radar"
 ```
 
-`docs/index.html`（地図）と `docs/ogp.png`（SNSのサムネイル）が出る。
+`index.html`（地図）と `ogp.png`（SNSのサムネイル）が出る。
 `--base-url` を省くとサムネイルが出ないので、必ず付ける。
 
 ## 2. GitHubにリポジトリを作る
@@ -53,13 +53,13 @@ cd C:\Users\take0\shinten-radar && git remote add origin https://github.com/shim
 
 1. リポジトリの **Settings** → 左メニューの **Pages**
 2. Source: **Deploy from a branch**
-3. Branch: **main** / フォルダ: **/docs** → Save
+3. Branch: **main** / フォルダ: **/ (root)** → Save
 4. 1〜2分待つと `https://shimokita-media.github.io/shinten-radar/` で公開される
 
 ## 5. 毎月の更新
 
 ```bash
-cd C:\Users\take0\shinten-radar && python build_map.py --public --base-url "https://shimokita-media.github.io/shinten-radar" && git add docs && git commit -m "$(date +%Y-%m)月分を更新" && git push
+cd C:\Users\take0\shinten-radar && python build_map.py --public --base-url "https://shimokita-media.github.io/shinten-radar" && git add index.html ogp.png && git commit -m "$(date +%Y-%m)月分を更新" && git push
 ```
 
 `run_monthly.bat` に足しておけば、毎月16日の自動実行のあとに手でpushするだけになる。
@@ -69,7 +69,7 @@ push まで自動にすると、確認せずに公開されるのでおすすめ
 
 | | git | 公開URL |
 |---|---|---|
-| `docs/index.html`（新店のみ） | ✅ | ✅ |
+| `index.html`（新店のみ） | ✅ | ✅ |
 | スクリプト・README | ✅ | リポジトリ上で読める |
 | `out/`（閉店・年表を含む手元の出力） | ❌ gitignore | ❌ |
 | `data/` `masters/` `state/`（キャッシュ） | ❌ gitignore | ❌ |

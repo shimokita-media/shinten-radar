@@ -78,7 +78,7 @@ def main():
     p = argparse.ArgumentParser(description="OGP画像を作る")
     p.add_argument("--count", type=int, default=0)
     p.add_argument("--period", default="")
-    p.add_argument("--out", default=os.path.join(HERE, "docs", "ogp.png"))
+    p.add_argument("--out", default=os.path.join(HERE, "ogp.png"))
     args = p.parse_args()
     path = build(args.count, args.period, args.out)
     if path:

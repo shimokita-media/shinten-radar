@@ -20,7 +20,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TARGET = os.path.join(HERE, "docs", "index.html")
+TARGET = os.path.join(HERE, "index.html")
 BASE_URL = "https://shimokita-media.github.io/shinten-radar"
 
 errors = []
@@ -41,7 +41,7 @@ def data_of(html):
 def previous_count():
     """1つ前のコミットに入っている地図の件数。無ければ None。"""
     try:
-        out = subprocess.run(["git", "show", "HEAD:docs/index.html"],
+        out = subprocess.run(["git", "show", "HEAD:index.html"],
                              cwd=HERE, capture_output=True, timeout=30)
         if out.returncode != 0:
             return None
@@ -52,7 +52,7 @@ def previous_count():
 
 
 def main():
-    if not check(os.path.exists(TARGET), "docs/index.html が無い"):
+    if not check(os.path.exists(TARGET), "index.html が無い"):
         report()
 
     html = open(TARGET, encoding="utf-8").read()

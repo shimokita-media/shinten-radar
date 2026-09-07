@@ -46,7 +46,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs data/shinki data/geocache.json out/shinten_all.csv
+          git add index.html ogp.png data/shinki data/geocache.json out/shinten_all.csv
           if git diff --cached --quiet; then
             echo "変更なし。今月は新しい店がありませんでした。"
             exit 0
