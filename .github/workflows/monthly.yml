@@ -1,0 +1,55 @@
+name: 月次更新
+
+# 世田谷区は毎月15日ごろに新規許可施設一覧を公開するので、その翌日に取りに行く。
+# 手元のPCは関係なく、GitHub側で動く。
+on:
+  schedule:
+    - cron: "0 1 16 * *"   # 毎月16日 01:00 UTC = 10:00 JST
+  workflow_dispatch:        # 「Run workflow」ボタンで手動実行もできる
+
+permissions:
+  contents: write
+
+concurrency:
+  group: monthly
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Tokyo
+      BASE_URL: https://shimokita-media.github.io/shinten-radar
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 依存を入れる
+        run: pip install requests pillow
+
+      - name: 新店を抽出する
+        # 直近3ヶ月を見る。区が消した古い月は data/shinki/ のキャッシュから読む
+        run: python shinten_radar.py --last 3
+
+      - name: 公開版をビルドする
+        run: python build_map.py --public --base-url "$BASE_URL"
+
+      - name: 公開してよいか検査する
+        # 1つでも引っかかればここで止まる＝壊れた地図は公開されない
+        run: python verify_public.py
+
+      - name: 変更があれば公開する
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs data/shinki data/geocache.json out/shinten_all.csv
+          if git diff --cached --quiet; then
+            echo "変更なし。今月は新しい店がありませんでした。"
+            exit 0
+          fi
+          git commit -m "自動更新 $(date +%Y-%m-%d)"
+          git push

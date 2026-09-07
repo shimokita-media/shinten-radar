@@ -1,17 +1,24 @@
 # 秘密
 .env
 
-# キャッシュ。区のサイトは過去ぶんを消すので手で削除しないこと（gitには載せない）
-data/
-masters/
+# 手元の作業用出力（閉店・年表はここ。公開しない）
+out/*
+!out/shinten_all.csv
+
+# LINE通知の初出判定。手元だけで持つ
 state/
-
-# 手元の作業用出力。公開するのは docs/ だけ
-out/
-
-# 旧システムの巨大CSV
-archive/ifas_data/
 
 __pycache__/
 *.pyc
 .claude/
+
+# 旧システムの巨大CSV（21MB）
+archive/ifas_data/
+
+# --- ここから下はあえて git に載せる ---
+# 区は過去の月のファイルを消してしまう（4月分はもう404）。
+# リポジトリが唯一の保存庫になるので、data/shinki と masters は必ず追跡する。
+#   data/shinki/     新規許可施設一覧の月次アーカイブ
+#   masters/         全許可施設一覧のアーカイブ（閉店判定に必須）
+#   data/geocache.json  ジオコーディング結果。毎回APIを叩かないため
+#   out/shinten_all.csv 新店の累積。地図の入力
